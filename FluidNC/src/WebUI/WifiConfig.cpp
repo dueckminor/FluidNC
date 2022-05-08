@@ -576,7 +576,31 @@ namespace WebUI {
             IPAddress ip(IP), mask(MK), gateway(GW);
             WiFi.config(ip, gateway, mask);
         }
-        if (WiFi.begin(SSID.c_str(), (password.length() > 0) ? password.c_str() : NULL)) {
+
+        log_info("Searching for best AP for SSID:" << SSID.c_str());
+        int nNetworks = WiFi.scanNetworks();
+        int iBestNetwork = -1;
+        int32_t rssi = -1000;
+        for (int i = 0; i < nNetworks; i++)
+        {
+            int32_t rssiThis = WiFi.RSSI(i);
+            log_info(WiFi.BSSIDstr(i) << "(" << WiFi.SSID(i) <<") - " << WiFi.RSSI(i) <<" db\n");
+            if (WiFi.SSID(i) != SSID)
+            {
+                continue;
+            }
+            if ((rssiThis > rssi) || (rssi > 0))
+            {
+                rssi = rssiThis;
+                iBestNetwork = i;
+            }
+        }
+
+        if (WiFi.begin(
+            SSID.c_str(), 
+            (password.length() > 0) ? password.c_str() : NULL,
+            0,WiFi.BSSID(iBestNetwork)
+            )) {
             log_info("Connecting to STA SSID:" << SSID.c_str());
             return ConnectSTA2AP();
         } else {
